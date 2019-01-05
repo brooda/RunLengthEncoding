@@ -71,13 +71,15 @@ int main(int argc, char **argv) {
     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
     printf("RLE_Parallel took %f seconds to execute \n", cpu_time_used);
     printf("Compressed string is OK: %d\n", strcmp(output2, correctOutput));
+    //printf("%s", output2);
+
 
     start = clock();
     RLE_Parallel_Inplace(input, fileLen);
     end = clock();
-    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-    printf("RLE_Parallel_inplace took %f seconds to execute \n", cpu_time_used);
-    printf("Compressed string is OK: %d\n", strcmp(input, correctOutput));
+    //cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+    //printf("\nRLE_Parallel_inplace took %f seconds to execute \n", cpu_time_used);
+    //printf("Compressed string is OK: %d\n", strcmp(input, correctOutput));
 
     return 0;
 }

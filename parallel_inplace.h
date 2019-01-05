@@ -142,7 +142,7 @@ void RLE_Parallel_Inplace(char* input, int inputSize)
 	cudaMemcpy(h_endLetters, d_endLetters, numberOfThreads * sizeof(char), cudaMemcpyDeviceToHost);
 
 
-	char* h_result;
+	//char* h_result;
 
 	for (int i = 0; i < numberOfThreads; i++)
 	{
