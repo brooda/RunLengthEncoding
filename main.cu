@@ -66,17 +66,17 @@ int main(int argc, char **argv) {
     printf("Compressed string is OK: %d\n", strcmp(output1, correctOutput));
 
     start = clock();
-    char *output2 = RLE_Parallel(input, fileLen);
+    RLE_Parallel(input, fileLen);
     end = clock();
     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
     printf("RLE_Parallel took %f seconds to execute \n", cpu_time_used);
-    printf("Compressed string is OK: %d\n", strcmp(output2, correctOutput));
-    //printf("%s", output2);
+    printf("Compressed string is OK: %d\n", strcmp(input, correctOutput));
+    //printf("%s", input);
 
 
-    start = clock();
-    RLE_Parallel_Inplace(input, fileLen);
-    end = clock();
+    //start = clock();
+    //RLE_Parallel_Inplace(input, fileLen);
+    //end = clock();
     //cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
     //printf("\nRLE_Parallel_inplace took %f seconds to execute \n", cpu_time_used);
     //printf("Compressed string is OK: %d\n", strcmp(input, correctOutput));

@@ -125,7 +125,7 @@ int power(int base, int exponent)
     return ret;
 }
 
-char* RLE_Parallel(char* input, int inputSize)
+void RLE_Parallel(char* input, int inputSize)
 {
 	// Transfer the input to GPU
 	char* d_input;
@@ -211,7 +211,7 @@ char* RLE_Parallel(char* input, int inputSize)
 	}
 
 
-	char* final = new char[3*len]; // We assume, that maximal count of letters in sequence is 99.
+	//char* final = new char[3*len]; // We assume, that maximal count of letters in sequence is 99.
 	int final_iter = 0;
 
 	for (int i = 0; i < len; i++)
@@ -220,7 +220,7 @@ char* RLE_Parallel(char* input, int inputSize)
 		{
 			if (h_counts[i] == 1)
 			{
-				final[final_iter++] = h_letters[i];
+				input[final_iter++] = h_letters[i];
 			}
 			else
 			{
@@ -229,15 +229,15 @@ char* RLE_Parallel(char* input, int inputSize)
 
 				for (int j = 0; j < strlen(buf); j++)
 				{
-					final[final_iter++] = buf[j];
+                    input[final_iter++] = buf[j];
 				}
 
-				final[final_iter++] = h_letters[i];
+                input[final_iter++] = h_letters[i];
 			}
 		}
 	}
 
-	final[final_iter] = 0;
+	input[final_iter] = 0;
 
 	cudaFree(d_input);
 	cudaFree(d_lengths);
@@ -245,5 +245,5 @@ char* RLE_Parallel(char* input, int inputSize)
 	cudaFree(d_counts);
 	cudaFree(d_letters);
 
-	return final;
+	//return final;
 }
