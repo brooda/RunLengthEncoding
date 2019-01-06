@@ -6,7 +6,7 @@
 #include "sequential.h"
 #include "parallel.h"
 #include "parallel_inplace.h"
-
+#include "arneback.h"
 
 int Tests() {
     int *chunks = EndsOfChunks(5000000, 256);
@@ -64,6 +64,15 @@ int main(int argc, char **argv) {
     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
     printf("RLE_Sequential took %f seconds to execute \n", cpu_time_used);
     printf("Compressed string is OK: %d\n", strcmp(output1, correctOutput));
+
+    /*
+    start = clock();
+    char *output3 = RLE_Arneback(input, fileLen);
+    end = clock();
+    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("RLE_Arneback took %f seconds to execute \n", cpu_time_used);
+    printf("Compressed string is OK: %d\n", strcmp(output3, correctOutput));
+*/
 
     start = clock();
     RLE_Parallel(input, fileLen);
