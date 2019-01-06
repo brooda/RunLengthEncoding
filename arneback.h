@@ -7,66 +7,43 @@
 #include <thrust/execution_policy.h>
 
 
-__global__ void BackwardMask(char* input, char* backwardMask, int inputSize)
+#define CUDA_CALL(x) {cudaError_t cuda_error__ = (x); if (cuda_error__) printf("CUDA error: " #x " returned \"%s\"\n", cudaGetErrorString(cuda_error__));}
+
+__global__ void BackwardMask(char* input, int* backwardMask, int inputSize)
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (i == 0)
-    {
-        backwardMask[i] = 1;
-    }
-    else
-    {
-        backwardMask[i] = (input[i] != input[i - 1]);
+    if (i < inputSize) {
+        if (i == 0) {
+            backwardMask[i] = 1;
+        } else {
+            backwardMask[i] = (input[i] != input[i - 1]);
+        }
     }
 }
 
-// Initially, input is backward mask
-// Also, output will be written to input.
-__global__ void ScanBackwardMask(char* input, int inputSize)
+__global__ void Compact(int* scannedBackwardMask, int* compactedBackwardMask, int* totalRuns, int inputSize)
 {
-    //int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
 
-
-
-}
-
-/* KERNEL FUNCTIONS */
-__global__ void scanKernel(int *data, const int len, int *out)
-{
-    const int threadCount = 1024;
-    const int log_1024 = 10;
-
-    int blockCount = gridDim.x;
-    int tbid = blockIdx.x*threadCount + threadIdx.x;
-    int id = threadIdx.x;
-    int offset = blockIdx.x * threadCount;
-    // max id 65535 * 1024 length
-
-    //int val = data[id];
-    //__syncthreads();
-
-    for (int d = 0; d < log_1024 - 1; d++) {
-        if (id % (1 << (d + 1)) == 0) {
-            data[offset + id + (1 << (d + 1)) - 1] = data[offset + id + (1 << d) - 1] + data[offset + id + (1 << (d + 1)) - 1];
+    if (i < inputSize)
+    {
+        if (i == (inputSize - 1))
+        {
+            compactedBackwardMask[scannedBackwardMask[i]] = i + 1;
+            *totalRuns = scannedBackwardMask[i];
+            printf("TOTAL RUNS FROM kernel: %d", *totalRuns);
         }
-        __syncthreads();
-    }
 
-    if (id == 0)
-        data[offset + 1024 - 1] = 0;
-    __syncthreads();
-
-    for (int d = log_1024 - 1; d >= 0; d--) {
-        if (id % (1 << (d + 1)) == 0) {
-            int tmp = data[offset + id + (1 << d) - 1];
-            data[offset + id + (1 << d) - 1] = data[offset + id + (1 << (d + 1)) - 1];
-            data[offset + id + (1 << (d + 1)) - 1] = tmp + data[offset + id + (1 << (d + 1)) - 1];
+        if (i == 0)
+        {
+            compactedBackwardMask[0] = 0;
         }
-        __syncthreads();
+        else if (scannedBackwardMask[i] != scannedBackwardMask[i - 1])
+        {
+            compactedBackwardMask[scannedBackwardMask[i] - 1] = i;
+        }
     }
-
-    //data[id] += val;
 }
 
 char* RLE_Arneback(char* input, int inputSize)
@@ -77,43 +54,60 @@ char* RLE_Arneback(char* input, int inputSize)
     cudaMemcpy(d_input, input, inputSize * sizeof(char), cudaMemcpyHostToDevice);
 
 
-    int blockSize = 256;
+    int blockSize = 16;
     int numberOfBlocks = inputSize / blockSize;
 
     if (blockSize * numberOfBlocks < inputSize)
     {
         numberOfBlocks++;
     }
-    int numberOfThreads = blockSize * numberOfBlocks;
+
+    //int numberOfThreads = blockSize * numberOfBlocks;
 
     // Create backwardMask array
-    char* h_backwardMask = new char[inputSize];
-    char* d_backwardMask;
-    cudaMalloc((void**)&d_backwardMask, inputSize * sizeof(char));
-    cudaMemcpy(d_backwardMask, h_backwardMask, inputSize * sizeof(char), cudaMemcpyHostToDevice);
+    int* h_backwardMask = new int[inputSize];
+    int* d_backwardMask;
+    cudaMalloc((void**)&d_backwardMask, inputSize * sizeof(int));
+    cudaMemcpy(d_backwardMask, h_backwardMask, inputSize * sizeof(int), cudaMemcpyHostToDevice);
 
     BackwardMask<<<numberOfBlocks, blockSize>>> (d_input, d_backwardMask, inputSize);
-    cudaMemcpy(h_backwardMask, d_backwardMask, inputSize * sizeof(char), cudaMemcpyDeviceToHost);
+    cudaMemcpy(h_backwardMask, d_backwardMask, inputSize * sizeof(int), cudaMemcpyDeviceToHost);
 
-    // implement own version and see how it will work
-    char* h_scannedBackwardMask = new char[inputSize];
-    char* d_scannedBackwardMask;
-    cudaMalloc((void**)&d_scannedBackwardMask, inputSize * sizeof(char));
-    cudaMemcpy(d_input, input, inputSize * sizeof(char), cudaMemcpyHostToDevice);
+    // I will use scan (prefix sum) from Thrust library
+    int* h_scannedBackwardMask = new int[inputSize];
+    int* d_scannedBackwardMask;
+    cudaMalloc((void**)&d_scannedBackwardMask, inputSize * sizeof(int));
 
-    //ScanBackwardMask<<<numberOfBlocks, blockSize>>> (d_input, d_backwardMask, inputSize);
+    thrust::inclusive_scan(thrust::device, d_backwardMask, d_backwardMask + inputSize, d_scannedBackwardMask);
+    //cudaMemcpy(h_scannedBackwardMask, d_scannedBackwardMask, inputSize * sizeof(int), cudaMemcpyDeviceToHost);
 
 
-    thrust::inclusive_scan(thrust::device, h_backwardMask, h_backwardMask + inputSize, h_scannedBackwardMask);
+    int* h_compactedBackwardMask = new int[inputSize];
+    int* d_compactedBackwardMask;
+    cudaMalloc((void**)&d_compactedBackwardMask, inputSize * sizeof(int));
+    cudaMemcpy(d_compactedBackwardMask, h_compactedBackwardMask, inputSize * sizeof(int), cudaMemcpyHostToDevice);
 
-    //for (int i=0; i<inputSize; i++)
-    //{
-    //    printf("%d ", scannedBackwardMask[i]);
-    //}
+    int h_totalRuns = 0;
+    int* d_totalRuns;
+    cudaMalloc(&d_totalRuns, sizeof(int));
 
-    /*
-    cudaMemcpy(h_lengths, d_lengths, numberOfThreads * sizeof(int), cudaMemcpyDeviceToHost);
+    Compact<<<numberOfBlocks, blockSize>>> (d_scannedBackwardMask, d_compactedBackwardMask, d_totalRuns, inputSize);
+    cudaDeviceSynchronize();
 
+    cudaMemcpy(&h_totalRuns, d_totalRuns, sizeof(int), cudaMemcpyDeviceToHost);
+    cudaFree(d_totalRuns);
+
+    cudaMemcpy(h_compactedBackwardMask, d_compactedBackwardMask, h_totalRuns * sizeof(int), cudaMemcpyDeviceToHost);
+
+
+    printf("Total runs: %d \n", h_totalRuns);
+
+
+    for (int i=0; i<h_totalRuns; i++ )
+    {
+        printf("%d ",h_compactedBackwardMask[i]);
+    }
+/*
     // Start positions to write for all threads
     int* h_starts = new int[numberOfThreads];
 

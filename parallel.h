@@ -136,7 +136,7 @@ void RLE_Parallel(char* input, int inputSize)
 	//int blockSize = 3;
 	//int numberOfBlocks = 2;
 
-	int blockSize = 256;
+	int blockSize = 512;
 	int numberOfBlocks = 4;
 
 	int numberOfThreads = blockSize * numberOfBlocks;
@@ -244,6 +244,4 @@ void RLE_Parallel(char* input, int inputSize)
 	cudaFree(d_starts);
 	cudaFree(d_counts);
 	cudaFree(d_letters);
-
-	//return final;
 }

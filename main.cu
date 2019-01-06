@@ -58,21 +58,23 @@ int main(int argc, char **argv) {
     fclose(fileCompressed);
     correctOutput[fileCompressedSize] = 0;
 
+    /*
+    char* input1 = new char[fileLen];
+    strncpy(input1, input, fileLen + 1);
+
+    char* input2 = new char[fileLen];
+    strncpy(input2, input, fileLen + 1);
+
+    char* input3 = new char[fileLen];
+    strncpy(input3, input, fileLen + 1);
+*/
+/*
     start = clock();
     char *output1 = RLE_Sequential(input, fileLen);
     end = clock();
     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
     printf("RLE_Sequential took %f seconds to execute \n", cpu_time_used);
     printf("Compressed string is OK: %d\n", strcmp(output1, correctOutput));
-
-    /*
-    start = clock();
-    char *output3 = RLE_Arneback(input, fileLen);
-    end = clock();
-    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-    printf("RLE_Arneback took %f seconds to execute \n", cpu_time_used);
-    printf("Compressed string is OK: %d\n", strcmp(output3, correctOutput));
-*/
 
     start = clock();
     RLE_Parallel(input, fileLen);
@@ -81,7 +83,13 @@ int main(int argc, char **argv) {
     printf("RLE_Parallel took %f seconds to execute \n", cpu_time_used);
     printf("Compressed string is OK: %d\n", strcmp(input, correctOutput));
     //printf("%s", input);
-
+*/
+    start = clock();
+    char *output3 = RLE_Arneback(input, fileLen);
+    end = clock();
+    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("RLE_Arneback took %f seconds to execute \n", cpu_time_used);
+    printf("Compressed string is OK: %d\n", strcmp(output3, correctOutput));
 
     //start = clock();
     //RLE_Parallel_Inplace(input, fileLen);
